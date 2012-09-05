@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>CloudSpokes Search</title>
+	<link href="css/bootstrap.css" rel="stylesheet">
+
+	<style type="text/css">
+		* {
+			margin: 0;
+			padding: 0;
+		}
+		body {
+			background: #f3f3f3;
+		}
+		#wrapper {
+			width: 720px;
+			padding: 14px;
+			margin: 40px auto;
+			background: #fff;
+			border: 1px solid #ccc;
+			box-shadow: 6px 6px 12px #888;
+		}
+
+		#search-field {
+			font-size: 130%;
+			padding: 4px;
+			margin-top: 10px;
+			min-height: 28px;
+		}
+
+		.search-radios {
+		}
+
+		.search-radios h5, .search-categories h5 {
+			color: #999;
+			font-weight: 600;
+			margin-bottom: 4px;
+		}
+
+		.search-categories {}
+
+		.search-categories label {
+			display: inline-block;
+			background: #fafafa;
+			padding: 3px 16px 3px 24px;
+			border-radius: 3px;
+			margin-right: 2px;
+			margin-bottom: 6px !important;
+		}
+
+		.search-categories label:hover {
+			background: #eee;
+		}
+
+		#post-field {
+			font-size: 110%;
+			font-family: consolas, monospace;
+			width: 90%;
+			height: 360px;
+			padding: 8px;
+		}
+
+		#links {
+			float: right;
+			margin-top: -36px;
+			margin-right: -6px;
+			font-size: 92%;
+		}
+
+	</style>
+</head>
+<body>
+	<div id="wrapper">
+		<div id="links">
+			<a href="/">Search</a>&nbsp;|&nbsp;
+			<a href="/post">Post JSON</a>&nbsp;|&nbsp;
+			<a href="https://bitbucket.org/soe/cs-search/raw/master/README.markdown" target="_blank">README</a>&nbsp;|&nbsp;
+			<a href="https://vimeo.com/45731039" target="_blank">Screencast</a>
+		</div>
+		<%= yield %>
+	</div>
+	<!-- scripts here -->
+	<script src="js/jquery.js"></script>
+	<script src="js/bootstrap-modal.js"></script>
+	<script type="text/javascript">
+	$(function() {
+		$('#post-btn').on('click', function() {
+			$btn = $(this);
+
+			// change button text to "Submitting" and disable
+			$btn.text('Submitting...').attr('disabled', 'disabled');
+			
+			try { // validate the json
+   			var json = JSON.parse($('#post-field').val());
+
+   			alert('Posting '+ json.length +' challenges would take a moment...');
+
+   			// submit the form via ajax
+				$.ajax({
+					type:'POST', 
+					url: '/post', 
+					data: $('#post-form').serialize(), 
+					success: function(response) {
+	    			
+	    			// show user the modal box with result
+	    			alert(response);
+
+	    			// change button text to "Search" and enable
+						$btn.text('Submit').removeAttr('disabled');
+					}, 
+					error: function(xhr, status, error) {
+						console.log('error - encountered')
+						// change button text to "Search" and enable
+						$btn.text('Submit').removeAttr('disabled');
+					}
+				});
+			} catch(e) {
+				alert('invalid json');
+				$btn.text('Submit').removeAttr('disabled');
+			}
+		});
+
+		$('#search-field').on('keypress', function(e) {
+			if(e.which == 13) {
+				$('#search-btn').focus().click();
+				e.preventDefault();
+			}
+		});
+
+		$('#search-btn').on('click', function() {
+			$btn = $(this);
+
+			// change button text to "Searching" and disable
+			$btn.text('Searching...').attr('disabled', 'disabled');
+
+			// clear the results
+			$('#results tr.from-search').remove();
+			$('#results-no').hide();
+			$('#results-error').hide();
+
+			// submit the form via ajax
+			$.ajax({
+				type:'POST', 
+				url: '/search', 
+				data: $('#search-form').serialize(), 
+				success: function(results) {
+					console.log(results);
+
+					if(results.length == 0) {
+						$('#results-no').show();
+					} else {
+						var _url = "http://www.cloudspokes.com/challenges/";
+	    			// built the result, one by one
+	    			for(i in results) {
+	    				var r = results[i];
+
+	    				var row = '<tr class="from-search">'+
+	    					
+	    					'<td>'+
+	    						'<a href="'+ _url + r['id'] +'" target="_blank">'+ r['title'] +'</a><br />'+
+
+	    						'<span class="badge">'+ r['categories'].join('</span>&nbsp;&nbsp;<span class="badge">') +'</span>'+
+	    					'</td>'+
+	    					'<td>'+ r['end_date'] +'</td>'+
+	    					'<td>'+ r['id'] +'</td>'+
+	    					'<td>'+ r['open'] +'</td>'+
+	    					
+							'</tr>';
+
+							// append to #results
+	    				$(row).appendTo('#results');
+						}
+    			}
+
+    			// change button text to "Search" and enable
+					$btn.text('Search').removeAttr('disabled');
+				}, 
+				error: function(xhr, status, error) {
+					$('#results-error').show();
+					// change button text to "Search" and enable
+					$btn.text('Search').removeAttr('disabled');
+				}
+			});
+		});
+
+		/*$('#search-form input[type=checkbox]').on('check', function() {
+			if(!$('#search-field').val().trim().length && !$('input[type=checkbox]:checked').length)
+			 	$('#relevance').removeAttr('disabled');
+			else
+			 	$('#relevance').attr('disabled', 'disabled');
+		});
+
+		$('#search-field').on('keyup', function() {
+			if(!$('#search-field').val().trim().length && !$('input[type=checkbox]:checked').length)
+			 	$('#relevance').removeAttr('disabled');
+			else
+				$('#relevance').attr('disabled', 'disabled');
+		});*/
+	});
+	</script>
+</body>
+</html>
